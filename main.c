@@ -14,20 +14,23 @@ unsigned char FTable(unsigned char val) {
     return ftable[row*16 + col];
 }
 
-unsigned char K_Encrypt(unsigned long x, unsigned long * keyPtr) {
-    *keyPtr = (*keyPtr << 1)|(*keyPtr >> 63);
-    unsigned long whichByte = x%8;
-    unsigned long result = (*keyPtr >> (whichByte * 8)) & 0xff; 
+unsigned char K_Encrypt(unsigned long long x, unsigned long long * keyPtr) {
+    *keyPtr = (*keyPtr << 1)|(*keyPtr >> 63); //circular rotate left
+    unsigned long long whichByte = x%8;
+    unsigned long long result = (*keyPtr >> (whichByte * 8)) & 0xff; 
     return (unsigned char) (result & 0xff);
 }
 
-int K_Decrypt(unsigned long subRound, unsigned long * keyPtr) {
-    unsigned long key = &keyPtr;
+//
+/*int K_Decrypt(unsigned long long x, unsigned long long * keyPtr) {
+    unsigned long long whichByte; 
+    unsigned long long whichByte = x%8;
+    *keyPtr = (*keyPtr >> 1)|(*keyPtr << 63);
+    unsigned long long result = (*keyPtr >> (whichByte * 8)) & 0xff; 
+    return (unsigned char) (result & 0xff);
+} */
 
-    return subRound;
-}
-
-unsigned short G_Encrypt(unsigned short w, unsigned long round, unsigned char subKey1,unsigned char subKey2,unsigned char subKey3,unsigned char subKey4) {
+unsigned short G(unsigned short w, unsigned long long round, unsigned char subKey1,unsigned char subKey2,unsigned char subKey3,unsigned char subKey4) {
     unsigned char g1 = (w >> 8) &0xff;
     unsigned char g2 = w & 0xff;
     unsigned char g3, g4, g5, g6;
@@ -41,7 +44,12 @@ unsigned short G_Encrypt(unsigned short w, unsigned long round, unsigned char su
 
 }
 
-unsigned short funcF(unsigned short r0, unsigned short r1, unsigned long round, unsigned long * keyPtr) {
+struct Fvalues {
+    unsigned short f0;
+    unsigned short f1;
+};
+
+struct Fvalues funcF(unsigned short r0, unsigned short r1, unsigned long long round, struct Fvalues fvals, unsigned long long * keyPtr) {
     unsigned char gk1, gk2, gk3, gk4, gk5, gk6, gk7, gk8, fk9, fk10, fk11, fk12;
 
     //first 4 subkeys from 1st call from G
@@ -60,30 +68,34 @@ unsigned short funcF(unsigned short r0, unsigned short r1, unsigned long round, 
     fk11 = K_Encrypt(4*round+2, keyPtr);
     fk12 = K_Encrypt(4*round+3, keyPtr);
 
-    unsigned short t0 = G_Encrypt(r0, gk1, gk2, gk3, gk4, round);
-    unsigned short t1 = G_Encrypt(r1, gk5, gk6, gk7, gk8, round);
+    unsigned short t0 = G(r0, gk1, gk2, gk3, gk4, round);
+    unsigned short t1 = G(r1, gk5, gk6, gk7, gk8, round);
 
-    unsigned short *f0 = (t0 + 2*t1 + ((unsigned short) (fk9) << 8 | (unsigned short) fk10)) % 65536; //2^16
-    unsigned short *f1 = (2*t0 + t1 + ((unsigned short) (fk11) << 8 | (unsigned short) fk12)) % 65536;
+    fvals.f0 = (t0 + 2*t1 + ((unsigned short) (fk9) << 8 | (unsigned short) fk10)) % 65536; //2^16
+    fvals.f1 = (2*t0 + t1 + ((unsigned short) (fk11) << 8 | (unsigned short) fk12)) % 65536;
 
-    return f0
-
+    return fvals;
 }
 
-void encrypt(unsigned char * block, unsigned long * keyPtr) {
+unsigned long long encrypt(unsigned char * block, unsigned long long * keyPtr) {
+    struct Fvalues fvals;
+    unsigned long long round = 0;
+    unsigned long long result;
+    unsigned short y0, y1, y2, y3, c0, c1, c2, c3;
+    unsigned long long key = * keyPtr;
+
     int i = 0;
-    unsigned long round = 0;
 
     //whitening
-    unsigned short w0 = ( ((unsigned short) block[0]& 0xff) << 8) + block[1]& 0xff;
-    unsigned short w1 = ( ((unsigned short) block[2]& 0xff) << 8) + block[3]& 0xff;
-    unsigned short w2 = ( ((unsigned short) block[4]& 0xff) << 8) + block[5]& 0xff;
-    unsigned short w3 = ( ((unsigned short) block[6]& 0xff) << 8) + block[7]& 0xff;
+    unsigned short w0 = ( ((unsigned short) block[0]) << 8) + block[1];
+    unsigned short w1 = ( ((unsigned short) block[2]) << 8) + block[3];
+    unsigned short w2 = ( ((unsigned short) block[4]) << 8) + block[5];
+    unsigned short w3 = ( ((unsigned short) block[6]) << 8) + block[7];
 
-    unsigned short k0 = ( ((unsigned short) keyPtr[0]& 0xff) << 8) + keyPtr[1]& 0xff;
-    unsigned short k1 = ( ((unsigned short) keyPtr[2]& 0xff) << 8) + keyPtr[3]& 0xff;
-    unsigned short k2 = ( ((unsigned short) keyPtr[4]& 0xff) << 8) + keyPtr[5]& 0xff;
-    unsigned short k3 = ( ((unsigned short) keyPtr[6]& 0xff) << 8) + keyPtr[7]& 0xff;
+    unsigned short k0 = (key >> 48) & 0xffff;
+    unsigned short k1 = (key >> 32) & 0xffff;
+    unsigned short k2 = (key >> 16) & 0xffff;
+    unsigned short k3 = (key) & 0xffff;
 
     unsigned short r0 = w0^k0;
     unsigned short r1 = w1^k1;
@@ -91,20 +103,91 @@ void encrypt(unsigned char * block, unsigned long * keyPtr) {
     unsigned short r3 = w3^k3;
 
     for(i; i <= 15; i++) {
-        funcF(r0, r1, round, keyPtr);
+        funcF(r0, r1, round, fvals, keyPtr);
+        r0 = (r2 ^ fvals.f0);
+        r0 = (r0 << 1)|(r0 >> 63);
+
+        r1 = (r3 << 1)|(r3 >> 63);
+        r1 = r1 ^ fvals.f1;
+
+        r2 = r0;
+        r3 = r1;
+
         round++;
     }
+
+    y0 = r2;
+    y1 = r3;
+    y2 = r0;
+    y3 = r1;
+
+    c0 = y0 ^ k0;
+    c1 = y1 ^ k1;
+    c2 = y2 ^ k2;
+    c3 = y3 ^ k3;
+
+    result = ((unsigned long long) c0 << 48) | ((unsigned long long) c1 << 32) | ((unsigned long long) c2 << 16) | (unsigned long long) c3;
+
 }
 
-void decrypt() {
-    
+void decrypt(unsigned char * block, unsigned long long * keyPtr) {
+    struct Fvalues fvals;
+    unsigned long long round = 0;
+    unsigned long long result;
+    unsigned short y0, y1, y2, y3, c0, c1, c2, c3;
+    int i = 0;
+
+    //whitening
+    unsigned short w0 = ( ((unsigned short) block[0]) << 8) + block[1];
+    unsigned short w1 = ( ((unsigned short) block[2]) << 8) + block[3];
+    unsigned short w2 = ( ((unsigned short) block[4]) << 8) + block[5];
+    unsigned short w3 = ( ((unsigned short) block[6]) << 8) + block[7];
+
+    unsigned short k0 = ( ((unsigned short) keyPtr[0]) << 8) + keyPtr[1];
+    unsigned short k1 = ( ((unsigned short) keyPtr[2]) << 8) + keyPtr[3];
+    unsigned short k2 = ( ((unsigned short) keyPtr[4]) << 8) + keyPtr[5];
+    unsigned short k3 = ( ((unsigned short) keyPtr[6]) << 8) + keyPtr[7];
+
+    unsigned short r0 = w0^k0;
+    unsigned short r1 = w1^k1;
+    unsigned short r2 = w2^k2;
+    unsigned short r3 = w3^k3;
+
+    for(i; i <= 15; i++) {
+        funcF(r0, r1, round, fvals, keyPtr);
+        r0 = (r2 ^ fvals.f0);
+        r0 = (r0 << 1)|(r0 >> 63);
+
+        r1 = (r3 << 1)|(r3 >> 63);
+        r1 = r1 ^ fvals.f1;
+
+        r2 = r0;
+        r3 = r1;
+
+        round++;
+    }
+
+    y0 = r2;
+    y1 = r3;
+    y2 = r0;
+    y3 = r1;
+
+    c0 = y0 ^ k0;
+    c1 = y1 ^ k1;
+    c2 = y2 ^ k2;
+    c3 = y3 ^ k3;
+
+    result = ((unsigned long long) c0 << 24) | ((unsigned long long) c1 << 16) | ((unsigned long long) c2 << 8) | c3;
+    printf("%0ulx", result);
+
 }
 
 int main(int argc, char* argv[]) {
 	FILE *keyFilePtr, *inputFilePtr, *outputFilePtr;
     unsigned char block[9];
-    unsigned long key;
-    int i, keySize, readSize;
+    unsigned long long key, cipherBlock;
+    unsigned char keyHex[16];
+    int i, keyHexSize, readSize;
     bool isEndcode;
 
     if (strcmp(argv[1], "-e") == 0) {
@@ -114,28 +197,38 @@ int main(int argc, char* argv[]) {
     }
 
     //Key Code
-    keyFilePtr = fopen(argv[2], "r");
+    keyFilePtr = fopen(argv[1], "r");
+
     //finding size of key file
     fseek(keyFilePtr, 0L, SEEK_END);
-    keySize = ftell(keyFilePtr);
+    keyHexSize = ftell(keyFilePtr);
     fseek(keyFilePtr, 0L, SEEK_SET);
-    if (keySize > 8) {
-        keySize = 8;
-    } else if (keySize < 8) {
-        printf("key file is not 64 bits");
+
+    printf("keyHexSize is %d\n", keyHexSize);
+
+    if (keyHexSize > 16) {
+        keyHexSize = 16;
+    } else if (keyHexSize < 16) {
+        printf("key file is not 64 bits \n");
         exit(1);
     }
 
-    readSize = fread(&key, 1, keySize, keyFilePtr);
-    if (readSize != keySize) {
+    //reading in key
+    readSize = fread(&keyHex, 1, keyHexSize, keyFilePtr);
+    if (readSize != keyHexSize) {
         printf("Mismatch in key file size");
         exit(1);
     }
     fclose(keyFilePtr);
 
+    for (i = 0; i < 8; i++){
+         sscanf(&keyHex[i * 2], "%2hhx", &( ( (unsigned char *) (&key) ) [7 - i] ) );
+    }
+    printf("Key: %0llx", key);
+    exit(0);
 
     //input code
-    inputFilePtr = fopen(argv[3], "r");
+    inputFilePtr = fopen(argv[2], "r");
     readSize = fread(block, 1, 8, inputFilePtr);
     while (readSize > 0) {
         if (readSize < 8) {
@@ -144,7 +237,7 @@ int main(int argc, char* argv[]) {
             }
         }
         readSize = fread(block, 1, 8, inputFilePtr);
-        encrypt(block, &key);
+        cipherBlock = encrypt(block, &key);
 
     }
 
