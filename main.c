@@ -30,7 +30,6 @@ unsigned short G(unsigned short w, unsigned long long round, unsigned char subKe
     g4 = FTable(g3^subKey2)^g2;
     g5 = FTable(g4^subKey3)^g3;
     g6 = FTable(g5^subKey4)^g4;
-    //printf("g values from G: %02x %02x %02x %02x %02x %02x  \n", g1, g2, g3, g4, g5, g6);
     return ((unsigned short) (g5)) << 8 | (unsigned short) g6;
 }
 
@@ -60,7 +59,6 @@ struct Fvalues funcF(int isEncoding, unsigned short r0, unsigned short r1, unsig
         fk10 = K_Encrypt(4*round+1, keyPtr);
         fk11 = K_Encrypt(4*round+2, keyPtr);
         fk12 = K_Encrypt(4*round+3, keyPtr);
-        printf("sub keys in encrypt after whitening: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x \n", gk1, gk2, gk3, gk4, gk5, gk6, gk7, gk8, fk9, fk10, fk11, fk12);
         unsigned short t0 = G(r0, round, gk1, gk2, gk3, gk4);
         unsigned short t1 = G(r1, round, gk5, gk6, gk7, gk8);
         fvals.f0 = (t0 + 2*t1 + ((unsigned short) (fk9) << 8 | (unsigned short) fk10)) % 65536; //2^16
@@ -82,69 +80,10 @@ struct Fvalues funcF(int isEncoding, unsigned short r0, unsigned short r1, unsig
         gk2 = K_Decrypt(4*round+1, keyPtr);
         gk1 = K_Decrypt(4*round, keyPtr);
 
-        /*gk1 = K_Decrypt(4*round+3, keyPtr);
-        gk2 = K_Decrypt(4*round+2, keyPtr);
-        gk3 = K_Decrypt(4*round+1, keyPtr);
-        gk4 = K_Decrypt(4*round, keyPtr);
-        //second 4 keys from 2nd call to G
-        gk5 = K_Decrypt(4*round+3, keyPtr);
-        gk6 = K_Decrypt(4*round+2, keyPtr);
-        gk7 = K_Decrypt(4*round+1, keyPtr);
-        gk8 = K_Decrypt(4*round, keyPtr);
-        //4 keys for call to F
-        fk9 = K_Decrypt(4*round+3, keyPtr);
-        fk10 = K_Decrypt(4*round+2, keyPtr);
-        fk11 = K_Decrypt(4*round+1, keyPtr);
-        fk12 = K_Decrypt(4*round, keyPtr); */
-
-        /*gk1 = K_Decrypt(4*round, keyPtr);
-        gk2 = K_Decrypt(4*round+1, keyPtr);
-        gk3 = K_Decrypt(4*round+2, keyPtr);
-        gk4 = K_Decrypt(4*round+3, keyPtr);
-        //second 4 keys from 2nd call to G
-        gk5 = K_Decrypt(4*round, keyPtr);
-        gk6 = K_Decrypt(4*round+1, keyPtr);
-        gk7 = K_Decrypt(4*round+2, keyPtr);
-        gk8 = K_Decrypt(4*round+3, keyPtr);
-        //4 keys for call to F
-        fk9 = K_Decrypt(4*round, keyPtr);
-        fk10 = K_Decrypt(4*round+1, keyPtr);
-        fk11 = K_Decrypt(4*round+2, keyPtr);
-        fk12 = K_Decrypt(4*round+3, keyPtr); */
-
-        /*fk12 = K_Decrypt(4*round, keyPtr);
-        fk11 = K_Decrypt(4*round+1, keyPtr);
-        fk10 = K_Decrypt(4*round+2, keyPtr);
-        fk9 = K_Decrypt(4*round+3, keyPtr);
-        //second 4 keys from 2nd call to G
-        gk8 = K_Decrypt(4*round, keyPtr);
-        gk7 = K_Decrypt(4*round+1, keyPtr);
-        gk6 = K_Decrypt(4*round+2, keyPtr);
-        gk5 = K_Decrypt(4*round+3, keyPtr);
-        //4 keys for call to F
-        gk4 = K_Decrypt(4*round, keyPtr);
-        gk3 = K_Decrypt(4*round+1, keyPtr);
-        gk2 = K_Decrypt(4*round+2, keyPtr);
-        gk1 = K_Decrypt(4*round+3, keyPtr); */
-
-        /*unsigned short t0 = G(r0, round, fk12, fk11, fk10, fk9);
-        unsigned short t1 = G(r1, round, gk8, gk7, gk6, gk5);
-        fvals.f0 = (t0 + 2*t1 + ((unsigned short) (gk4) << 8 | (unsigned short) gk3)) % 65536; //2^16
-        fvals.f1 = (2*t0 + t1 + ((unsigned short) (gk2) << 8 | (unsigned short) gk1)) % 65536; */
-
-
         unsigned short t0 = G(r0, round, gk1, gk2, gk3, gk4);
         unsigned short t1 = G(r1, round, gk5, gk6, gk7, gk8);
         fvals.f0 = (t0 + 2*t1 + ((unsigned short) (fk9) << 8 | (unsigned short) fk10)) % 65536; //2^16
         fvals.f1 = (2*t0 + t1 + ((unsigned short) (fk11) << 8 | (unsigned short) fk12)) % 65536; 
-
-        printf("sub keys in decrypt after whitening: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x \n", gk1, gk2, gk3, gk4, gk5, gk6, gk7, gk8, fk9, fk10, fk11, fk12);
-        
-        
-        /*unsigned short t0 = G(r0, round, gk8, gk7, gk6, gk5);
-        unsigned short t1 = G(r1, round, gk4, gk3, gk2, gk1);
-        fvals.f0 = (t0 + 2*t1 + ((unsigned short) (fk12) << 8 | (unsigned short) fk11)) % 65536; //2^16
-        fvals.f1 = (2*t0 + t1 + ((unsigned short) (fk10) << 8 | (unsigned short) fk9)) % 65536;*/
         return fvals;
     }
 }
@@ -172,7 +111,6 @@ unsigned long long encryption(int isEncoding, unsigned char * block, unsigned lo
     unsigned short r2 = w2^k2;
     unsigned short r3 = w3^k3;
 
-    printf("R words after whitening: %llu : %04x%04x%04x%04x \n", round, r0, r1, r2, r3);
     //code for doing the 16 rounds
     for(i = 0 ; i < 16; i++) {
         unsigned short newR2, newR3;
@@ -185,7 +123,6 @@ unsigned long long encryption(int isEncoding, unsigned char * block, unsigned lo
         r1 = r1 ^ fvals.f1;
         r2 = newR2;
         r3 = newR3;
-        printf("R words after round %llu : %04x%04x%04x%04x\n", round, r0, r1, r2, r3);
         round++;
     }
     y0 = r2;
@@ -197,7 +134,6 @@ unsigned long long encryption(int isEncoding, unsigned char * block, unsigned lo
     c2 = y2 ^ k2;
     c3 = y3 ^ k3;
     result = ((unsigned long long) c0 << 48) | ((unsigned long long) c1 << 32) | ((unsigned long long) c2 << 16) | (unsigned long long) c3;
-    printf("cipher block is: %llx \n", result);
     return result;
 }
 
@@ -228,7 +164,6 @@ unsigned long long decryption(int isEncoding, unsigned char * block, unsigned lo
     unsigned short r2 = w2^k2;
     unsigned short r3 = w3^k3;
 
-    printf("R words after whitening in decrypt: %llu : %04x%04x%04x%04x \n", round, r0, r1, r2, r3);
 
     //code for doing the 16 rounds
     for(i = 0 ; i < 16; i++) {
@@ -247,7 +182,6 @@ unsigned long long decryption(int isEncoding, unsigned char * block, unsigned lo
 
         r2 = newR2;
         r3 = newR3;
-        printf("R words after round %llu : %04x%04x%04x%04x \n", round, r0, r1, r2, r3);
         round--;
     }
 
@@ -262,7 +196,6 @@ unsigned long long decryption(int isEncoding, unsigned char * block, unsigned lo
     c3 = y3 ^ k3;
 
     result = ((unsigned long long) c0 << 48) | ((unsigned long long) c1 << 32) | ((unsigned long long) c2 << 16) | (unsigned long long) c3;
-    printf("cipher block is: %llx \n", result);
     return result;
 }
 
@@ -316,29 +249,51 @@ int main(int argc, char* argv[]) {
     inputFilePtr = fopen(argv[3], "r");
     outputFilePtr = fopen(argv[4], "w");
 
-    readSize = fread(blockAscii, 1, 16, inputFilePtr);
 
-    while (readSize > 0) {
-        if (readSize < 16) {
-            for (i = readSize; i < 16; i++) {
-                block[i] = '0';
+    //ENCODING
+    if(isEncoding) {
+        readSize = fread(block, 1, 8, inputFilePtr);
+
+        while (readSize > 0) {
+            if (readSize < 8) {
+                for (i = readSize; i < 8; i++) {
+                    block[i] = ' ';
+                }
             }
-        }
-
-        //converts ascci to hex
-        for (i = 0; i < 8; i++){
-            sscanf((char *)&blockAscii[i * 2], "%2hhx", &(block[i]));
-        }
-
-        if(isEncoding) {
+            printf("The hex values are: %02x %02x %02x %02x %02x %02x %02x %02x \n", block[0], block[1], block[2], block[3], block[4],block[5],block[6],block[7]);
             unsigned long long encryptBlock = encryption(isEncoding, block, &key);
-            fprintf(outputFilePtr, "%llx", encryptBlock);
-        } else {
-            unsigned long long decryptBlock = decryption(isEncoding, block, &key);
-            fprintf(outputFilePtr, "%llx", decryptBlock);
-        }
 
+            unsigned char * bp = (unsigned char *) (&encryptBlock);
+
+            for(i = 0; i < 8; i++) {
+                fprintf(outputFilePtr, "%02x", bp[7-i]);
+            }
+            readSize = fread(block, 1, 8, inputFilePtr);
+        }
+    } else {
+        //DECODING
         readSize = fread(blockAscii, 1, 16, inputFilePtr);
+        while (readSize > 0) {
+            if (readSize < 16) {
+                for (i = readSize; i < 16; i++) {
+                    block[i] = ' ';
+                }
+            }
+
+            //converts ascci to hex
+            for (i = 0; i < 8; i++){
+                sscanf((char *)&blockAscii[i * 2], "%2hhx", &(block[i]));
+            }
+
+            unsigned long long decryptBlock = decryption(isEncoding, block, &key);
+
+            unsigned char * bp = (unsigned char *) (&decryptBlock);
+
+            for(i = 0; i < 8; i++) {
+                fwrite(&(bp[7-i]), 1, 1, outputFilePtr);
+            }
+            readSize = fread(blockAscii, 1, 16, inputFilePtr);
+        }
     }
 
     fclose(inputFilePtr);
