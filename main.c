@@ -260,7 +260,6 @@ int main(int argc, char* argv[]) {
                     block[i] = ' ';
                 }
             }
-            printf("The hex values are: %02x %02x %02x %02x %02x %02x %02x %02x \n", block[0], block[1], block[2], block[3], block[4],block[5],block[6],block[7]);
             unsigned long long encryptBlock = encryption(isEncoding, block, &key);
 
             unsigned char * bp = (unsigned char *) (&encryptBlock);
