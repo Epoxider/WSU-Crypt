@@ -244,7 +244,7 @@ int main(int argc, char* argv[]) {
     fclose(keyFilePtr);
 
     for (i = 0; i < 8; i++){
-         sscanf(&(keyHex[i*2]), "%2hhx", &( ( (unsigned char *) (&key) ) [7 - i] ) );
+         sscanf((const char *)&(keyHex[i*2]), "%2hhx", &( ( (unsigned char *) (&key) ) [7 - i] ) );
     }
 
 
